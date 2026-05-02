@@ -3,94 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hourly Task Assignment</title>
+    <title>24/7 Shift Task Generator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
-        .btn { background-color: #3498db; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.3s; }
+        
+        /* Input Form Styles */
+        .tech-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 5px;}
+        input[type="text"], select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; flex: 1; }
+        .btn { background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
         .btn:hover { background-color: #2980b9; }
-        .output-box { margin-top: 25px; background-color: #1e2a38; color: #a8c7fa; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; font-size: 15px; border-left: 4px solid #3498db; }
-        .btn-copy { background-color: #2ecc71; margin-top: 15px; }
-        .btn-copy:hover { background-color: #27ae60; }
+        .btn-add { background-color: #2ecc71; margin-bottom: 20px; }
+        .btn-add:hover { background-color: #27ae60; }
+        .btn-remove { background-color: #e74c3c; flex: 0; }
+        
+        /* Table Styles matching your Excel screenshot */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: center; }
+        th, td { border: 1px solid #000; padding: 8px; }
+        .header-yellow { background-color: #ffff00; color: #000; font-weight: bold; font-size: 16px; padding: 10px;}
+        .header-red { background-color: #c00000; color: #fff; font-weight: bold; }
+        td:first-child { font-weight: bold; background-color: #f8f9fa; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Hourly Task Assignment</h2>
-
-    <div class="form-group">
-        <label for="tech1">Tech 1 Name</label>
-        <input type="text" id="tech1" value="Jean">
-    </div>
-    <div class="form-group">
-        <label for="tech2">Tech 2 Name</label>
-        <input type="text" id="tech2" value="Arnel">
-    </div>
-    <div class="form-group">
-        <label for="tech3">Tech 3 Name</label>
-        <input type="text" id="tech3" value="Mark">
-    </div>
-
-    <div class="form-group">
-        <label for="hourSelect">Select Current Time Slot</label>
-        <select id="hourSelect" onchange="generateAssignment()">
-            <option value="5">05:00 AM - 06:00 AM (3 Techs)</option>
-            <option value="6">06:00 AM - 07:00 AM (3 Techs)</option>
-            <option value="7">07:00 AM - 08:00 AM (3 Techs)</option>
-            <option value="8">08:00 AM - 09:00 AM (2 Techs)</option>
-            <option value="9">09:00 AM - 10:00 AM (2 Techs)</option>
-        </select>
-    </div>
-
-    <button class="btn" onclick="generateAssignment()">Generate Task Assignment</button>
-
-    <div id="output" class="output-box">Loading today's schedule...</div>
+    <h2>24/7 Workforce Roster</h2>
     
-    <button class="btn btn-copy" onclick="copyToClipboard()">Copy to Clipboard for Teams</button>
+    <div id="roster-container">
+        <!-- Tech inputs will be added here dynamically -->
+    </div>
+    
+    <button class="btn btn-add" onclick="addTechRow()">+ Add Team Member</button>
+    <button class="btn" onclick="generateTable()">Generate 24-Hour Schedule</button>
+
+    <table id="scheduleTable" style="display:none;">
+        <thead>
+            <tr>
+                <th colspan="7" class="header-yellow">New Task Assignment</th>
+            </tr>
+            <tr>
+                <th class="header-red">Manila Time</th>
+                <th class="header-red">CRITICAL TASK</th>
+                <th class="header-red">ITOPS DL & TEAMS</th>
+                <th class="header-red">WARNING TASK</th>
+                <th class="header-red">CBSNET</th>
+                <th class="header-red">CALENDAR TASK</th>
+                <th class="header-red">BREAK AND OTHERS</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Rows generated by Javascript -->
+        </tbody>
+    </table>
 </div>
 
 <script>
-    const rotationRules = {
-        5: { critical: "tech1", warning: "tech2", other: "tech3" },
-        6: { critical: "tech2", warning: "tech3", other: "tech1" },
-        7: { critical: "tech3", warning: "tech1", other: "tech2" },
-        8: { critical: "tech1", warning: "tech2", other: "tech2" }, 
-        9: { critical: "tech2", warning: "tech1", other: "tech1" }  
-    };
-
-    function generateAssignment() {
-        const names = {
-            tech1: document.getElementById('tech1').value || "[Unassigned]",
-            tech2: document.getElementById('tech2').value || "[Unassigned]",
-            tech3: document.getElementById('tech3').value || "[Unassigned]"
-        };
-
-        const hour = parseInt(document.getElementById('hourSelect').value);
-        const rule = rotationRules[hour];
-
-        let outputText = `📢 HOURLY TASK ASSIGNMENT\n`;
-        outputText += `⏰ Time Slot: 0${hour}:00 - 0${hour + 1}:00\n\n`;
-        
-        outputText += `🔴 CRITICAL TASK / ITOPS: ${names[rule.critical]}\n`;
-        outputText += `🟡 WARNING TASK: ${names[rule.warning]}\n`;
-        outputText += `🔵 CBSNET / CALENDAR / BREAK: ${names[rule.other]}\n`;
-
-        document.getElementById('output').innerText = outputText;
+    // Time options for the dropdowns
+    const hours = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
+    
+    function createOptions() {
+        return hours.map((h, i) => `<option value="${i}">${h}</option>`).join('');
     }
 
-    function copyToClipboard() {
-        const textToCopy = document.getElementById('output').innerText;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            alert('Copied! You can now paste this directly into Microsoft Teams.');
+    function addTechRow() {
+        const container = document.getElementById('roster-container');
+        const div = document.createElement('div');
+        div.className = 'tech-row';
+        div.innerHTML = `
+            <input type="text" placeholder="Tech Name" class="tech-name">
+            <label>Start:</label><select class="tech-start">${createOptions()}</select>
+            <label>End:</label><select class="tech-end">${createOptions()}</select>
+            <label>Break:</label><select class="tech-break">${createOptions()}</select>
+            <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(div);
+    }
+
+    // Add 3 default rows to start
+    window.onload = () => { addTechRow(); addTechRow(); addTechRow(); };
+
+    function formatAMPM(hour) {
+        let ampm = hour >= 12 ? 'PM' : 'AM';
+        let h = hour % 12;
+        h = h ? h : 12; 
+        return `${h} ${ampm}`;
+    }
+
+    function generateTable() {
+        document.getElementById('scheduleTable').style.display = 'table';
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = ''; // Clear old data
+
+        // Gather all inputted tech data
+        const rows = document.querySelectorAll('.tech-row');
+        let staff = [];
+        rows.forEach(row => {
+            let name = row.querySelector('.tech-name').value;
+            if (name) {
+                staff.push({
+                    name: name,
+                    start: parseInt(row.querySelector('.tech-start').value),
+                    end: parseInt(row.querySelector('.tech-end').value),
+                    breakHr: parseInt(row.querySelector('.tech-break').value)
+                });
+            }
         });
-    }
 
-    window.onload = generateAssignment;
+        // Generate 24 hours starting from 6 AM (to match your image)
+        for (let i = 0; i < 24; i++) {
+            let currentHour = (i + 6) % 24;
+            let nextHour = (currentHour + 1) % 24;
+            let timeLabel = `${formatAMPM(currentHour)} - ${formatAMPM(nextHour)}`;
+
+            let activeTechs = [];
+            let breakTechs = [];
+
+            // Determine who is on shift and who is on break for this specific hour
+            staff.forEach(tech => {
+                // Handle overnight shifts (e.g., 22:00 to 07:00)
+                let isOnShift = false;
+                if (tech.start <= tech.end) {
+                    isOnShift = currentHour >= tech.start && currentHour < tech.end;
+                } else {
+                    isOnShift = currentHour >= tech.start || currentHour < tech.end;
+                }
+
+                if (isOnShift) {
+                    if (currentHour === tech.breakHr) {
+                        breakTechs.push(tech.name);
+                    } else {
+                        activeTechs.push(tech.name);
+                    }
+                }
+            });
+
+            // Mathematical Rolling Rotation based on current hour
+            let tasks = ["", "", "", "", ""]; // [Critical, ITOPS, Warning, CBSNET, Calendar]
+            if (activeTechs.length > 0) {
+                // Shift the array so the tasks rotate every hour
+                let offset = currentHour % activeTechs.length;
+                let rotatedTechs = activeTechs.slice(offset).concat(activeTechs.slice(0, offset));
+                
+                // Distribute tasks like dealing cards
+                for(let t = 0; t < 5; t++) {
+                    tasks[t] = rotatedTechs[t % rotatedTechs.length];
+                }
+            }
+
+            // Build the HTML row
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${timeLabel}</td>
+                <td>${tasks[0]}</td>
+                <td>${tasks[1]}</td>
+                <td>${tasks[2]}</td>
+                <td>${tasks[3]}</td>
+                <td>${tasks[4]}</td>
+                <td>${breakTechs.join(', ')}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
 </script>
 
 </body>
