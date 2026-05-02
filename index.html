@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IT Ops Task Portal</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .tech-entry { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; background: #eee; padding: 5px 10px; border-radius: 4px; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #2980b9; }
+        #output { margin-top: 20px; white-space: pre-wrap; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; font-family: monospace; }
+        .absent-check { accent-color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>IT Ops Daily Task Portal</h2>
+    
+    <div class="input-group">
+        <label>Current Shift Label Assignment:</label>
+        <div class="tech-entry">S1A: <input type="text" id="name-S1A" value="Arnel"> <input type="checkbox" id="abs-S1A" class="absent-check"> Absent</div>
+        <div class="tech-entry">S1B: <input type="text" id="name-S1B" value="Jean"> <input type="checkbox" id="abs-S1B" class="absent-check"> Absent</div>
+        <div class="tech-entry">S1C: <input type="text" id="name-S1C" value="Mark"> <input type="checkbox" id="abs-S1C" class="absent-check"> Absent</div>
+    </div>
+
+    <button onclick="generateSchedule()">Generate Teams Handover</button>
+
+    <div id="output">Your daily schedule will appear here...</div>
+</div>
+
+<script>
+    function generateSchedule() {
+        const now = new Date();
+        const hour = now.getHours();
+        
+        // Simplified Logic for the Demo
+        let tech1 = document.getElementById('name-S1A').value;
+        let t1Abs = document.getElementById('abs-S1A').checked;
+        
+        let tech2 = document.getElementById('name-S1B').value;
+        let t2Abs = document.getElementById('abs-S1B').checked;
+
+        let outputText = `📅 DAILY HANDOVER - ${now.toDateString()}\n`;
+        outputText += `------------------------------------\n`;
+        
+        if(hour >= 7 && hour < 8) {
+            outputText += `TIME: 07:00 AM - 08:00 AM\n`;
+            outputText += `CRITICAL TASK: ${t2Abs ? tech1 + " (Covering)" : tech2}\n`;
+            outputText += `WARNING TASK: ${t2Abs ? tech1 + " (Covering)" : tech2}\n`;
+            outputText += `CBSNET/CALENDAR: ${tech1}\n`;
+        } else {
+            outputText += `Rotation active for 5AM-10AM slots.\nCheck rotation logic for current hour: ${hour}:00`;
+        }
+
+        document.getElementById('output').innerText = outputText;
+    }
+</script>
+
+</body>
+</html>
