@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Shift Generator</title>
+    <title>ITOPS Shift Generator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -29,7 +29,7 @@
 <body>
 
 <div class="container">
-    <h2>ITOPS Automated Task Assignment(Smart Rotation)</h2>
+    <h2>ITOPS Automated Task Assignment</h2>
     
     <div id="roster-container">
         <!-- Tech inputs will be added here dynamically -->
@@ -76,13 +76,12 @@
         return options;
     }
 
-    // NEW: Updates End options to ONLY show 4 to 11 hours after Start
+    // Updates End options to ONLY show 4 to 11 hours after Start
     function updateEndOptions(startSelect) {
         const startHour = parseInt(startSelect.value);
         const row = startSelect.closest('.tech-row');
         const endSelect = row.querySelector('.tech-end');
         
-        // Save current end value if it exists so it doesn't always reset when changing start
         let currentEnd = endSelect.value;
         let options = '';
         
@@ -92,30 +91,26 @@
         }
         endSelect.innerHTML = options;
         
-        // Push the update to the Break/Special dropdowns
         updateBreakSpecialOptions(row);
     }
 
-    // NEW: Updates Break/Special to ONLY show hours within the shift
+    // Updates Break/Special to ONLY show hours within the shift
     function updateBreakSpecialOptions(row) {
         const startHour = parseInt(row.querySelector('.tech-start').value);
         const endHour = parseInt(row.querySelector('.tech-end').value);
         const breakSelect = row.querySelector('.tech-break');
         const specialSelect = row.querySelector('.tech-special');
         
-        // Calculate shift duration in hours
         let shiftLength = (endHour - startHour + 24) % 24;
-        if (shiftLength === 0) shiftLength = 24; // Failsafe
+        if (shiftLength === 0) shiftLength = 24; 
 
         let options = `<option value="-1">--</option>`;
         
-        // Generate options strictly within shift (exclusive of the final End hour)
         for (let i = 0; i < shiftLength; i++) {
             let h = (startHour + i) % 24;
             options += `<option value="${h}">${formatAMPM(h)}</option>`;
         }
         
-        // Save current values if they are still valid, otherwise it resets to "--"
         let curBreak = breakSelect.value;
         let curSpecial = specialSelect.value;
         
@@ -140,7 +135,6 @@
         `;
         container.appendChild(div);
         
-        // Initialize dynamic dropdowns for this new row
         updateEndOptions(div.querySelector('.tech-start'));
     }
 
@@ -195,6 +189,7 @@
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = ''; 
 
+        // Generating exactly 24 hours starting from 7 AM (offset is now +7)
         for (let i = 0; i < 24; i++) {
             let currentHour = (i + 7) % 24;
             let nextHour = (currentHour + 1) % 24;
