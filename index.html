@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duty Roster Dashboard</title>
+    <title>Hourly Task Assignment</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -21,7 +21,7 @@
 <body>
 
 <div class="container">
-    <h2>Duty Roster Dashboard</h2>
+    <h2>Hourly Task Assignment</h2>
 
     <div class="form-group">
         <label for="tech1">Tech 1 Name</label>
@@ -38,7 +38,7 @@
 
     <div class="form-group">
         <label for="hourSelect">Select Current Time Slot</label>
-        <select id="hourSelect" onchange="generateHandover()">
+        <select id="hourSelect" onchange="generateAssignment()">
             <option value="5">05:00 AM - 06:00 AM (3 Techs)</option>
             <option value="6">06:00 AM - 07:00 AM (3 Techs)</option>
             <option value="7">07:00 AM - 08:00 AM (3 Techs)</option>
@@ -47,7 +47,7 @@
         </select>
     </div>
 
-    <button class="btn" onclick="generateHandover()">Generate Handover Message</button>
+    <button class="btn" onclick="generateAssignment()">Generate Task Assignment</button>
 
     <div id="output" class="output-box">Loading today's schedule...</div>
     
@@ -55,8 +55,6 @@
 </div>
 
 <script>
-    // THE ENGINE: This matches your exact rotation template.
-    // Notice how at hour 8 and 9, the "other" tasks combine into a single tech.
     const rotationRules = {
         5: { critical: "tech1", warning: "tech2", other: "tech3" },
         6: { critical: "tech2", warning: "tech3", other: "tech1" },
@@ -65,27 +63,23 @@
         9: { critical: "tech2", warning: "tech1", other: "tech1" }  
     };
 
-    function generateHandover() {
-        // 1. Grab the names you typed in the boxes
+    function generateAssignment() {
         const names = {
             tech1: document.getElementById('tech1').value || "[Unassigned]",
             tech2: document.getElementById('tech2').value || "[Unassigned]",
             tech3: document.getElementById('tech3').value || "[Unassigned]"
         };
 
-        // 2. Find out which hour is selected in the dropdown
         const hour = parseInt(document.getElementById('hourSelect').value);
         const rule = rotationRules[hour];
 
-        // 3. Build the clean text for Microsoft Teams
-        let outputText = `📢 SHIFT HANDOVER / TASK ASSIGNMENT\n`;
-        outputText += `⏰ Time Slot: 0${hour}:00 AM - 0${hour + 1}:00 AM\n\n`;
+        let outputText = `📢 HOURLY TASK ASSIGNMENT\n`;
+        outputText += `⏰ Time Slot: 0${hour}:00 - 0${hour + 1}:00\n\n`;
         
         outputText += `🔴 CRITICAL TASK / ITOPS: ${names[rule.critical]}\n`;
         outputText += `🟡 WARNING TASK: ${names[rule.warning]}\n`;
         outputText += `🔵 CBSNET / CALENDAR / BREAK: ${names[rule.other]}\n`;
 
-        // 4. Push the text to the dark display box on the screen
         document.getElementById('output').innerText = outputText;
     }
 
@@ -96,8 +90,7 @@
         });
     }
 
-    // Run the generator immediately when the page first loads
-    window.onload = generateHandover;
+    window.onload = generateAssignment;
 </script>
 
 </body>
