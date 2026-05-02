@@ -1,63 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>IT Ops Task Portal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duty Roster Dashboard</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .tech-entry { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; background: #eee; padding: 5px 10px; border-radius: 4px; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
-        button:hover { background: #2980b9; }
-        #output { margin-top: 20px; white-space: pre-wrap; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; font-family: monospace; }
-        .absent-check { accent-color: #e74c3c; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .btn { background-color: #3498db; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.3s; }
+        .btn:hover { background-color: #2980b9; }
+        .output-box { margin-top: 25px; background-color: #1e2a38; color: #a8c7fa; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; font-size: 15px; border-left: 4px solid #3498db; }
+        .btn-copy { background-color: #2ecc71; margin-top: 15px; }
+        .btn-copy:hover { background-color: #27ae60; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>IT Ops Daily Task Portal</h2>
-    
-    <div class="input-group">
-        <label>Current Shift Label Assignment:</label>
-        <div class="tech-entry">S1A: <input type="text" id="name-S1A" value="Arnel"> <input type="checkbox" id="abs-S1A" class="absent-check"> Absent</div>
-        <div class="tech-entry">S1B: <input type="text" id="name-S1B" value="Jean"> <input type="checkbox" id="abs-S1B" class="absent-check"> Absent</div>
-        <div class="tech-entry">S1C: <input type="text" id="name-S1C" value="Mark"> <input type="checkbox" id="abs-S1C" class="absent-check"> Absent</div>
+<div class="container">
+    <h2>Duty Roster Dashboard</h2>
+
+    <div class="form-group">
+        <label for="tech1">Tech 1 Name</label>
+        <input type="text" id="tech1" value="Jean">
+    </div>
+    <div class="form-group">
+        <label for="tech2">Tech 2 Name</label>
+        <input type="text" id="tech2" value="Arnel">
+    </div>
+    <div class="form-group">
+        <label for="tech3">Tech 3 Name</label>
+        <input type="text" id="tech3" value="Mark">
     </div>
 
-    <button onclick="generateSchedule()">Generate Teams Handover</button>
+    <div class="form-group">
+        <label for="hourSelect">Select Current Time Slot</label>
+        <select id="hourSelect" onchange="generateHandover()">
+            <option value="5">05:00 AM - 06:00 AM (3 Techs)</option>
+            <option value="6">06:00 AM - 07:00 AM (3 Techs)</option>
+            <option value="7">07:00 AM - 08:00 AM (3 Techs)</option>
+            <option value="8">08:00 AM - 09:00 AM (2 Techs)</option>
+            <option value="9">09:00 AM - 10:00 AM (2 Techs)</option>
+        </select>
+    </div>
 
-    <div id="output">Your daily schedule will appear here...</div>
+    <button class="btn" onclick="generateHandover()">Generate Handover Message</button>
+
+    <div id="output" class="output-box">Loading today's schedule...</div>
+    
+    <button class="btn btn-copy" onclick="copyToClipboard()">Copy to Clipboard for Teams</button>
 </div>
 
 <script>
-    function generateSchedule() {
-        const now = new Date();
-        const hour = now.getHours();
-        
-        // Simplified Logic for the Demo
-        let tech1 = document.getElementById('name-S1A').value;
-        let t1Abs = document.getElementById('abs-S1A').checked;
-        
-        let tech2 = document.getElementById('name-S1B').value;
-        let t2Abs = document.getElementById('abs-S1B').checked;
+    // THE ENGINE: This matches your exact rotation template.
+    // Notice how at hour 8 and 9, the "other" tasks combine into a single tech.
+    const rotationRules = {
+        5: { critical: "tech1", warning: "tech2", other: "tech3" },
+        6: { critical: "tech2", warning: "tech3", other: "tech1" },
+        7: { critical: "tech3", warning: "tech1", other: "tech2" },
+        8: { critical: "tech1", warning: "tech2", other: "tech2" }, 
+        9: { critical: "tech2", warning: "tech1", other: "tech1" }  
+    };
 
-        let outputText = `📅 DAILY HANDOVER - ${now.toDateString()}\n`;
-        outputText += `------------------------------------\n`;
-        
-        if(hour >= 7 && hour < 8) {
-            outputText += `TIME: 07:00 AM - 08:00 AM\n`;
-            outputText += `CRITICAL TASK: ${t2Abs ? tech1 + " (Covering)" : tech2}\n`;
-            outputText += `WARNING TASK: ${t2Abs ? tech1 + " (Covering)" : tech2}\n`;
-            outputText += `CBSNET/CALENDAR: ${tech1}\n`;
-        } else {
-            outputText += `Rotation active for 5AM-10AM slots.\nCheck rotation logic for current hour: ${hour}:00`;
-        }
+    function generateHandover() {
+        // 1. Grab the names you typed in the boxes
+        const names = {
+            tech1: document.getElementById('tech1').value || "[Unassigned]",
+            tech2: document.getElementById('tech2').value || "[Unassigned]",
+            tech3: document.getElementById('tech3').value || "[Unassigned]"
+        };
 
+        // 2. Find out which hour is selected in the dropdown
+        const hour = parseInt(document.getElementById('hourSelect').value);
+        const rule = rotationRules[hour];
+
+        // 3. Build the clean text for Microsoft Teams
+        let outputText = `📢 SHIFT HANDOVER / TASK ASSIGNMENT\n`;
+        outputText += `⏰ Time Slot: 0${hour}:00 AM - 0${hour + 1}:00 AM\n\n`;
+        
+        outputText += `🔴 CRITICAL TASK / ITOPS: ${names[rule.critical]}\n`;
+        outputText += `🟡 WARNING TASK: ${names[rule.warning]}\n`;
+        outputText += `🔵 CBSNET / CALENDAR / BREAK: ${names[rule.other]}\n`;
+
+        // 4. Push the text to the dark display box on the screen
         document.getElementById('output').innerText = outputText;
     }
+
+    function copyToClipboard() {
+        const textToCopy = document.getElementById('output').innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Copied! You can now paste this directly into Microsoft Teams.');
+        });
+    }
+
+    // Run the generator immediately when the page first loads
+    window.onload = generateHandover;
 </script>
 
 </body>
