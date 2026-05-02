@@ -8,18 +8,20 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
+        h3 { color: #555; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         
         /* Input Form Styles */
         .tech-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 5px; flex-wrap: wrap; }
         input[type="text"], select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; flex: 1; min-width: 80px;}
         .btn { background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
         .btn:hover { background-color: #2980b9; }
-        .btn-add { background-color: #2ecc71; margin-bottom: 20px; }
+        .btn-add { background-color: #2ecc71; margin-bottom: 10px; }
         .btn-add:hover { background-color: #27ae60; }
         .btn-remove { background-color: #e74c3c; flex: 0; }
+        .help-text { font-size: 13px; color: #7f8c8d; margin-bottom: 15px; display: block; }
         
         /* Table Styles */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; font-size: 14px; text-align: center; }
         th, td { border: 1px solid #000; padding: 8px; }
         .header-yellow { background-color: #ffff00; color: #000; font-weight: bold; font-size: 16px; padding: 10px;}
         .header-red { background-color: #c00000; color: #fff; font-weight: bold; }
@@ -29,19 +31,31 @@
 <body>
 
 <div class="container">
-    <h2>ITOPS Automated Task Assignment</h2>
+    <h2>ITOPS AUTOMATED TASK ASSIGNMENT</h2>
     
+    <!-- TODAY'S SHIFT CONTAINER -->
+    <h3>Today's Shift Roster</h3>
     <div id="roster-container">
-        <!-- Tech inputs will be added here dynamically -->
+        <!-- Tech inputs added here dynamically -->
     </div>
+    <button class="btn btn-add" onclick="addTechRow('roster-container', false)">+ Add Today Team Member</button>
+
+    <!-- NEXT DAY SHIFT CONTAINER -->
+    <h4>Next Day Shift (Tomorrow Morning)</h4>
+    <span class="help-text">Team members added here will ONLY be active during the final 6:00 AM - 7:00 AM transition hour.</span>
+    <div id="next-day-roster-container">
+        <!-- Next day inputs added here dynamically -->
+    </div>
+    <button class="btn btn-add" onclick="addTechRow('next-day-roster-container', true)">+ Add Next Day Team Member</button>
     
-    <button class="btn btn-add" onclick="addTechRow()">+ Add Team Member</button>
-    <button class="btn" onclick="generateTable()">Generate 24-Hour Schedule</button>
+    <hr style="margin: 30px 0; border: 0; border-top: 2px dashed #ddd;">
+
+    <button class="btn" style="width: 100%; font-size: 18px; padding: 15px;" onclick="generateTable()">Generate 24-Hour Schedule</button>
 
     <table id="scheduleTable" style="display:none;">
         <thead>
             <tr>
-                <th colspan="7" class="header-yellow">ITOPS Task Assignment</th>
+                <th colspan="7" class="header-yellow">New Task Assignment</th>
             </tr>
             <tr>
                 <th class="header-red">Manila Time</th>
@@ -67,7 +81,6 @@
         return `${h} ${ampm}`;
     }
 
-    // Standard 24-hour options for Start dropdown
     function createOptions() {
         let options = '';
         for (let i = 0; i < 24; i++) {
@@ -76,15 +89,12 @@
         return options;
     }
 
-    // Updates End options to ONLY show 4 to 11 hours after Start
     function updateEndOptions(startSelect) {
         const startHour = parseInt(startSelect.value);
         const row = startSelect.closest('.tech-row');
         const endSelect = row.querySelector('.tech-end');
         
-        let currentEnd = endSelect.value;
         let options = '';
-        
         for (let i = 4; i <= 11; i++) {
             let h = (startHour + i) % 24;
             options += `<option value="${h}">${formatAMPM(h)}</option>`;
@@ -94,7 +104,6 @@
         updateBreakSpecialOptions(row);
     }
 
-    // Updates Break/Special to ONLY show hours within the shift
     function updateBreakSpecialOptions(row) {
         const startHour = parseInt(row.querySelector('.tech-start').value);
         const endHour = parseInt(row.querySelector('.tech-end').value);
@@ -121,55 +130,91 @@
         if([...specialSelect.options].some(o => o.value === curSpecial)) specialSelect.value = curSpecial;
     }
 
-    function addTechRow() {
-        const container = document.getElementById('roster-container');
+    // Now accepts a flag to determine if it's the simplified "Next Day" row
+    function addTechRow(containerId, isNextDay) {
+        const container = document.getElementById(containerId);
         const div = document.createElement('div');
         div.className = 'tech-row';
-        div.innerHTML = `
-            <input type="text" placeholder="Tech Name" class="tech-name">
-            <label>Start:</label><select class="tech-start" onchange="updateEndOptions(this)">${createOptions()}</select>
-            <label>End:</label><select class="tech-end" onchange="updateBreakSpecialOptions(this.closest('.tech-row'))"></select>
-            <label>Break (1h):</label><select class="tech-break"></select>
-            <label>Special (1h):</label><select class="tech-special"></select>
-            <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
-        `;
-        container.appendChild(div);
         
-        updateEndOptions(div.querySelector('.tech-start'));
+        if (isNextDay) {
+            // Simplified row for tomorrow's staff
+            div.innerHTML = `
+                <input type="text" placeholder="Tech Name (Next Day)" class="tech-name" style="max-width: 400px;">
+                <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+        } else {
+            // Full row for today's staff
+            div.innerHTML = `
+                <input type="text" placeholder="Tech Name" class="tech-name">
+                <label>Start:</label><select class="tech-start" onchange="updateEndOptions(this)">${createOptions()}</select>
+                <label>End:</label><select class="tech-end" onchange="updateBreakSpecialOptions(this.closest('.tech-row'))"></select>
+                <label>Break:</label><select class="tech-break"></select>
+                <label>Special:</label><select class="tech-special"></select>
+                <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            updateEndOptions(div.querySelector('.tech-start'));
+        }
+        
+        container.appendChild(div);
     }
 
-    // Add 4 default rows to start
-    window.onload = () => { addTechRow(); addTechRow(); addTechRow(); addTechRow(); };
+    // Load defaults: 3 for today, 2 for tomorrow
+    window.onload = () => { 
+        addTechRow('roster-container', false); 
+        addTechRow('roster-container', false); 
+        addTechRow('roster-container', false); 
+        addTechRow('next-day-roster-container', true); 
+        addTechRow('next-day-roster-container', true);
+    };
+
+    // Helper to extract full data for Today's staff
+    function extractTodayStaff() {
+        const rows = document.querySelectorAll('#roster-container .tech-row');
+        let staffArray = [];
+        rows.forEach(row => {
+            let name = row.querySelector('.tech-name').value;
+            if (name) {
+                staffArray.push({
+                    name: name,
+                    start: parseInt(row.querySelector('.tech-start').value),
+                    end: parseInt(row.querySelector('.tech-end').value),
+                    breakHr: parseInt(row.querySelector('.tech-break').value),
+                    specialHr: parseInt(row.querySelector('.tech-special').value)
+                });
+            }
+        });
+        return staffArray;
+    }
+
+    // Helper to extract simple names for Tomorrow's staff
+    function extractTomorrowStaff() {
+        const rows = document.querySelectorAll('#next-day-roster-container .tech-row');
+        let staffArray = [];
+        rows.forEach(row => {
+            let name = row.querySelector('.tech-name').value;
+            if (name) {
+                staffArray.push({ name: name });
+            }
+        });
+        return staffArray;
+    }
 
     function generateTable() {
-        // --- CONFLICT CHECKER ---
-        const rows = document.querySelectorAll('.tech-row');
-        let staff = [];
+        let todayStaff = extractTodayStaff();
+        let tomorrowStaff = extractTomorrowStaff();
+
+        // --- CONFLICT CHECKER (Only runs on Today's Staff) ---
         let offTimes = {}; 
         let conflictFound = false;
         let conflictMsg = "";
 
-        rows.forEach(row => {
-            let name = row.querySelector('.tech-name').value;
-            if (name) {
-                let brk = parseInt(row.querySelector('.tech-break').value);
-                let spec = parseInt(row.querySelector('.tech-special').value);
-                
-                [brk, spec].forEach(hr => {
-                    if (hr !== -1) {
-                        if (!offTimes[hr]) offTimes[hr] = [];
-                        offTimes[hr].push(name);
-                    }
-                });
-
-                staff.push({
-                    name: name,
-                    start: parseInt(row.querySelector('.tech-start').value),
-                    end: parseInt(row.querySelector('.tech-end').value),
-                    breakHr: brk,
-                    specialHr: spec
-                });
-            }
+        todayStaff.forEach(tech => {
+            [tech.breakHr, tech.specialHr].forEach(hr => {
+                if (hr !== -1) {
+                    if (!offTimes[hr]) offTimes[hr] = [];
+                    offTimes[hr].push(tech.name);
+                }
+            });
         });
 
         for (let hour in offTimes) {
@@ -180,16 +225,20 @@
         }
 
         if (conflictFound) {
-            alert("⚠️ HEADS UP! Double-Booking Detected:\nMultiple techs are scheduled for a Break or Special Task at the same time:" + conflictMsg + "\n\nPlease adjust the times to ensure coverage.");
+            alert("⚠️ HEADS UP! Double-Booking Detected in Today's Shift:\nMultiple techs are scheduled for a Break or Special Task at the same time:" + conflictMsg + "\n\nPlease adjust the times to ensure coverage.");
             return; 
         }
 
-        // --- GENERATE TABLE ---
         document.getElementById('scheduleTable').style.display = 'table';
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = ''; 
 
-        // Generating exactly 24 hours starting from 7 AM (offset is now +7)
+        // Tracker for the "Time-Wrap Ghost Buster"
+        let shiftState = {};
+        todayStaff.forEach(tech => {
+            shiftState[tech.name] = { hasStarted: false, hasEnded: false };
+        });
+
         for (let i = 0; i < 24; i++) {
             let currentHour = (i + 7) % 24;
             let nextHour = (currentHour + 1) % 24;
@@ -198,12 +247,25 @@
             let activeTechs = [];
             let offTechs = [];
 
-            staff.forEach(tech => {
+            // 1. Process Today's Staff
+            todayStaff.forEach(tech => {
                 let isOnShift = false;
                 if (tech.start <= tech.end) {
                     isOnShift = currentHour >= tech.start && currentHour < tech.end;
                 } else {
                     isOnShift = currentHour >= tech.start || currentHour < tech.end;
+                }
+
+                if (isOnShift) {
+                    if (shiftState[tech.name].hasEnded) {
+                        isOnShift = false; 
+                    } else {
+                        shiftState[tech.name].hasStarted = true;
+                    }
+                } else {
+                    if (shiftState[tech.name].hasStarted) {
+                        shiftState[tech.name].hasEnded = true;
+                    }
                 }
 
                 if (isOnShift) {
@@ -215,6 +277,15 @@
                 }
             });
 
+            // 2. Process Tomorrow's Staff ONLY if it's the final row (6:00 AM)
+            if (i === 23) {
+                tomorrowStaff.forEach(tech => {
+                    // They are automatically active for this transition hour
+                    activeTechs.push(tech.name);
+                });
+            }
+
+            // 3. Distribute Tasks based on total active manpower
             let tCrit = "", tItops = "", tWarn = "", tCbs = "", tCal = "";
 
             if (activeTechs.length > 0) {
