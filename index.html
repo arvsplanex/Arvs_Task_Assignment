@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>12-Hour Shift Task Generator</title>
+    <title>ITOPS Task Assignment</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
         
         /* Input Form Styles */
-        .tech-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 5px;}
-        input[type="text"], select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; flex: 1; }
+        .tech-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 5px; flex-wrap: wrap; }
+        input[type="text"], select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; flex: 1; min-width: 80px;}
         .btn { background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
         .btn:hover { background-color: #2980b9; }
         .btn-add { background-color: #2ecc71; margin-bottom: 20px; }
@@ -23,20 +23,20 @@
         th, td { border: 1px solid #000; padding: 8px; }
         .header-yellow { background-color: #ffff00; color: #000; font-weight: bold; font-size: 16px; padding: 10px;}
         .header-red { background-color: #c00000; color: #fff; font-weight: bold; }
-        td:first-child { font-weight: bold; background-color: #f8f9fa; }
+        td:first-child { font-weight: bold; background-color: #f8f9fa; white-space: nowrap;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>12-Hour Workforce Roster</h2>
+    <h2>24/7 Workforce Roster (Smart Rotation)</h2>
     
     <div id="roster-container">
         <!-- Tech inputs will be added here dynamically -->
     </div>
     
     <button class="btn btn-add" onclick="addTechRow()">+ Add Team Member</button>
-    <button class="btn" onclick="generateTable()">Generate 12-Hour Schedule</button>
+    <button class="btn" onclick="generateTable()">Generate 24-Hour Schedule</button>
 
     <table id="scheduleTable" style="display:none;">
         <thead>
@@ -60,11 +60,29 @@
 </div>
 
 <script>
-    // Time options for the dropdowns
-    const hours = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
-    
+    function formatAMPM(hour) {
+        let ampm = hour >= 12 ? 'PM' : 'AM';
+        let h = hour % 12;
+        h = h ? h : 12; 
+        return `${h} ${ampm}`;
+    }
+
+    // Creates standard hours for Start/End
     function createOptions() {
-        return hours.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+        let options = '';
+        for (let i = 0; i < 24; i++) {
+            options += `<option value="${i}">${formatAMPM(i)}</option>`;
+        }
+        return options;
+    }
+
+    // Creates hours with a "--" (None) option for Break/Special Tasks
+    function createOptionalOptions() {
+        let options = `<option value="-1">--</option>`;
+        for (let i = 0; i < 24; i++) {
+            options += `<option value="${i}">${formatAMPM(i)}</option>`;
+        }
+        return options;
     }
 
     function addTechRow() {
@@ -75,28 +93,21 @@
             <input type="text" placeholder="Tech Name" class="tech-name">
             <label>Start:</label><select class="tech-start">${createOptions()}</select>
             <label>End:</label><select class="tech-end">${createOptions()}</select>
-            <label>Break:</label><select class="tech-break">${createOptions()}</select>
+            <label>Break (1h):</label><select class="tech-break">${createOptionalOptions()}</select>
+            <label>Special (1h):</label><select class="tech-special">${createOptionalOptions()}</select>
             <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
         `;
         container.appendChild(div);
     }
 
-    // Add 3 default rows to start
-    window.onload = () => { addTechRow(); addTechRow(); addTechRow(); };
-
-    function formatAMPM(hour) {
-        let ampm = hour >= 12 ? 'PM' : 'AM';
-        let h = hour % 12;
-        h = h ? h : 12; 
-        return `${h} ${ampm}`;
-    }
+    // Add 4 default rows to start
+    window.onload = () => { addTechRow(); addTechRow(); addTechRow(); addTechRow(); };
 
     function generateTable() {
         document.getElementById('scheduleTable').style.display = 'table';
         const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = ''; // Clear old data
+        tbody.innerHTML = ''; 
 
-        // Gather all inputted tech data
         const rows = document.querySelectorAll('.tech-row');
         let staff = [];
         rows.forEach(row => {
@@ -106,21 +117,20 @@
                     name: name,
                     start: parseInt(row.querySelector('.tech-start').value),
                     end: parseInt(row.querySelector('.tech-end').value),
-                    breakHr: parseInt(row.querySelector('.tech-break').value)
+                    breakHr: parseInt(row.querySelector('.tech-break').value),
+                    specialHr: parseInt(row.querySelector('.tech-special').value)
                 });
             }
         });
 
-        // Generate exactly 12 hours starting from 6 AM
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 24; i++) {
             let currentHour = (i + 6) % 24;
             let nextHour = (currentHour + 1) % 24;
             let timeLabel = `${formatAMPM(currentHour)} - ${formatAMPM(nextHour)}`;
 
             let activeTechs = [];
-            let breakTechs = [];
+            let offTechs = []; // This holds Break, Special Tasks, and Extra Staff
 
-            // Determine who is on shift and who is on break for this specific hour
             staff.forEach(tech => {
                 let isOnShift = false;
                 if (tech.start <= tech.end) {
@@ -130,37 +140,57 @@
                 }
 
                 if (isOnShift) {
-                    if (currentHour === tech.breakHr) {
-                        breakTechs.push(tech.name);
+                    // Check if they are on Break OR Special Task
+                    if (currentHour === tech.breakHr || currentHour === tech.specialHr) {
+                        offTechs.push(tech.name);
                     } else {
                         activeTechs.push(tech.name);
                     }
                 }
             });
 
-            // Mathematical Rolling Rotation based on current hour
-            let tasks = ["", "", "", "", ""]; // [Critical, ITOPS, Warning, CBSNET, Calendar]
+            // Set up task variables
+            let tCrit = "", tItops = "", tWarn = "", tCbs = "", tCal = "";
+
             if (activeTechs.length > 0) {
-                // Shift the array so the tasks rotate every hour
+                // Rolling offset
                 let offset = currentHour % activeTechs.length;
                 let rotatedTechs = activeTechs.slice(offset).concat(activeTechs.slice(0, offset));
                 
-                // Distribute tasks like dealing cards
-                for(let t = 0; t < 5; t++) {
-                    tasks[t] = rotatedTechs[t % rotatedTechs.length];
+                // Rule 1: Critical and ITOps always handled by Person 1
+                tCrit = rotatedTechs[0];
+                tItops = rotatedTechs[0];
+
+                // Rule 2: Distribution based on manpower
+                if (rotatedTechs.length === 1) {
+                    tWarn = rotatedTechs[0]; tCbs = rotatedTechs[0]; tCal = rotatedTechs[0];
+                } 
+                else if (rotatedTechs.length === 2) {
+                    tWarn = rotatedTechs[1]; tCbs = rotatedTechs[1]; tCal = rotatedTechs[1];
+                } 
+                else if (rotatedTechs.length === 3) {
+                    tWarn = rotatedTechs[1]; tCbs = rotatedTechs[2]; tCal = rotatedTechs[2];
+                } 
+                else {
+                    // 4 or more people available
+                    tWarn = rotatedTechs[1]; tCbs = rotatedTechs[2]; tCal = rotatedTechs[3];
+                    
+                    // Throw anyone extra into the "Others" column
+                    for (let j = 4; j < rotatedTechs.length; j++) {
+                        offTechs.push(rotatedTechs[j]);
+                    }
                 }
             }
 
-            // Build the HTML row
             let tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${timeLabel}</td>
-                <td>${tasks[0]}</td>
-                <td>${tasks[1]}</td>
-                <td>${tasks[2]}</td>
-                <td>${tasks[3]}</td>
-                <td>${tasks[4]}</td>
-                <td>${breakTechs.join(', ')}</td>
+                <td>${tCrit}</td>
+                <td>${tItops}</td>
+                <td>${tWarn}</td>
+                <td>${tCbs}</td>
+                <td>${tCal}</td>
+                <td>${offTechs.join(', ')}</td>
             `;
             tbody.appendChild(tr);
         }
