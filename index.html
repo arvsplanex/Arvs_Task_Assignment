@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24/7 Shift Task Generator</title>
+    <title>12-Hour Shift Task Generator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -18,7 +18,7 @@
         .btn-add:hover { background-color: #27ae60; }
         .btn-remove { background-color: #e74c3c; flex: 0; }
         
-        /* Table Styles matching your Excel screenshot */
+        /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: center; }
         th, td { border: 1px solid #000; padding: 8px; }
         .header-yellow { background-color: #ffff00; color: #000; font-weight: bold; font-size: 16px; padding: 10px;}
@@ -29,14 +29,14 @@
 <body>
 
 <div class="container">
-    <h2>24/7 Workforce Roster</h2>
+    <h2>12-Hour Workforce Roster</h2>
     
     <div id="roster-container">
         <!-- Tech inputs will be added here dynamically -->
     </div>
     
     <button class="btn btn-add" onclick="addTechRow()">+ Add Team Member</button>
-    <button class="btn" onclick="generateTable()">Generate 24-Hour Schedule</button>
+    <button class="btn" onclick="generateTable()">Generate 12-Hour Schedule</button>
 
     <table id="scheduleTable" style="display:none;">
         <thead>
@@ -111,8 +111,8 @@
             }
         });
 
-        // Generate 24 hours starting from 6 AM (to match your image)
-        for (let i = 0; i < 24; i++) {
+        // Generate exactly 12 hours starting from 6 AM
+        for (let i = 0; i < 12; i++) {
             let currentHour = (i + 6) % 24;
             let nextHour = (currentHour + 1) % 24;
             let timeLabel = `${formatAMPM(currentHour)} - ${formatAMPM(nextHour)}`;
@@ -122,7 +122,6 @@
 
             // Determine who is on shift and who is on break for this specific hour
             staff.forEach(tech => {
-                // Handle overnight shifts (e.g., 22:00 to 07:00)
                 let isOnShift = false;
                 if (tech.start <= tech.end) {
                     isOnShift = currentHour >= tech.start && currentHour < tech.end;
