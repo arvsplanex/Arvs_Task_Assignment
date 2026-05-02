@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ITOPS Task Assignment</title>
+    <title>24/7 Smart Shift Generator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -67,7 +67,7 @@
         return `${h} ${ampm}`;
     }
 
-    // Creates standard hours for Start/End
+    // Creates standard 24-hour options for the Start dropdown
     function createOptions() {
         let options = '';
         for (let i = 0; i < 24; i++) {
@@ -85,43 +85,90 @@
         return options;
     }
 
+    // NEW: Dynamically updates the End dropdown to only show max 12 hours from Start
+    function updateEndOptions(startSelect) {
+        const startHour = parseInt(startSelect.value);
+        const endSelect = startSelect.parentElement.querySelector('.tech-end');
+        
+        let options = '';
+        for (let i = 1; i <= 12; i++) {
+            let h = (startHour + i) % 24;
+            options += `<option value="${h}">${formatAMPM(h)}</option>`;
+        }
+        endSelect.innerHTML = options;
+    }
+
     function addTechRow() {
         const container = document.getElementById('roster-container');
         const div = document.createElement('div');
         div.className = 'tech-row';
         div.innerHTML = `
             <input type="text" placeholder="Tech Name" class="tech-name">
-            <label>Start:</label><select class="tech-start">${createOptions()}</select>
-            <label>End:</label><select class="tech-end">${createOptions()}</select>
+            <label>Start:</label><select class="tech-start" onchange="updateEndOptions(this)">${createOptions()}</select>
+            <label>End:</label><select class="tech-end"></select>
             <label>Break (1h):</label><select class="tech-break">${createOptionalOptions()}</select>
             <label>Special (1h):</label><select class="tech-special">${createOptionalOptions()}</select>
             <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
         `;
         container.appendChild(div);
+        
+        // Initialize the End options immediately after adding the row
+        updateEndOptions(div.querySelector('.tech-start'));
     }
 
     // Add 4 default rows to start
     window.onload = () => { addTechRow(); addTechRow(); addTechRow(); addTechRow(); };
 
     function generateTable() {
-        document.getElementById('scheduleTable').style.display = 'table';
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = ''; 
-
+        // --- NEW: CONFLICT CHECKER ---
         const rows = document.querySelectorAll('.tech-row');
         let staff = [];
+        let offTimes = {}; // Tracks who is off at what hour
+        let conflictFound = false;
+        let conflictMsg = "";
+
         rows.forEach(row => {
             let name = row.querySelector('.tech-name').value;
             if (name) {
+                let brk = parseInt(row.querySelector('.tech-break').value);
+                let spec = parseInt(row.querySelector('.tech-special').value);
+                
+                // Track breaks and specials for overlap checking
+                [brk, spec].forEach(hr => {
+                    if (hr !== -1) {
+                        if (!offTimes[hr]) offTimes[hr] = [];
+                        offTimes[hr].push(name);
+                    }
+                });
+
                 staff.push({
                     name: name,
                     start: parseInt(row.querySelector('.tech-start').value),
                     end: parseInt(row.querySelector('.tech-end').value),
-                    breakHr: parseInt(row.querySelector('.tech-break').value),
-                    specialHr: parseInt(row.querySelector('.tech-special').value)
+                    breakHr: brk,
+                    specialHr: spec
                 });
             }
         });
+
+        // Loop through the tracked off-times to see if 2+ people are off at the same hour
+        for (let hour in offTimes) {
+            if (offTimes[hour].length > 1) {
+                conflictFound = true;
+                conflictMsg += `\n- ${offTimes[hour].join(" and ")} at ${formatAMPM(parseInt(hour))}`;
+            }
+        }
+
+        // Trigger alert and stop generation if conflict exists
+        if (conflictFound) {
+            alert("⚠️ HEADS UP! Double-Booking Detected:\nMultiple techs are scheduled for a Break or Special Task at the same time:" + conflictMsg + "\n\nPlease adjust the times to ensure coverage.");
+            return; 
+        }
+        // -----------------------------
+
+        document.getElementById('scheduleTable').style.display = 'table';
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = ''; 
 
         for (let i = 0; i < 24; i++) {
             let currentHour = (i + 6) % 24;
@@ -129,7 +176,7 @@
             let timeLabel = `${formatAMPM(currentHour)} - ${formatAMPM(nextHour)}`;
 
             let activeTechs = [];
-            let offTechs = []; // This holds Break, Special Tasks, and Extra Staff
+            let offTechs = [];
 
             staff.forEach(tech => {
                 let isOnShift = false;
@@ -140,7 +187,6 @@
                 }
 
                 if (isOnShift) {
-                    // Check if they are on Break OR Special Task
                     if (currentHour === tech.breakHr || currentHour === tech.specialHr) {
                         offTechs.push(tech.name);
                     } else {
@@ -149,19 +195,15 @@
                 }
             });
 
-            // Set up task variables
             let tCrit = "", tItops = "", tWarn = "", tCbs = "", tCal = "";
 
             if (activeTechs.length > 0) {
-                // Rolling offset
                 let offset = currentHour % activeTechs.length;
                 let rotatedTechs = activeTechs.slice(offset).concat(activeTechs.slice(0, offset));
                 
-                // Rule 1: Critical and ITOps always handled by Person 1
                 tCrit = rotatedTechs[0];
                 tItops = rotatedTechs[0];
 
-                // Rule 2: Distribution based on manpower
                 if (rotatedTechs.length === 1) {
                     tWarn = rotatedTechs[0]; tCbs = rotatedTechs[0]; tCal = rotatedTechs[0];
                 } 
@@ -172,10 +214,7 @@
                     tWarn = rotatedTechs[1]; tCbs = rotatedTechs[2]; tCal = rotatedTechs[2];
                 } 
                 else {
-                    // 4 or more people available
                     tWarn = rotatedTechs[1]; tCbs = rotatedTechs[2]; tCal = rotatedTechs[3];
-                    
-                    // Throw anyone extra into the "Others" column
                     for (let j = 4; j < rotatedTechs.length; j++) {
                         offTechs.push(rotatedTechs[j]);
                     }
