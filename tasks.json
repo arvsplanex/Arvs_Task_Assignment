@@ -1,0 +1,9 @@
+{
+  "hourly_rotation": {
+    "05:00": {"Critical": "Tech 1", "Warning": "Tech 1", "CBSNet": "Tech 2", "Calendar": "Tech 3", "Break": "Tech 3"},
+    "06:00": {"Critical": "Tech 2", "Warning": "Tech 2", "CBSNet": "Tech 3", "Calendar": "Tech 1", "Break": "Tech 1"},
+    "07:00": {"Critical": "Tech 3", "Warning": "Tech 3", "CBSNet": "Tech 1", "Calendar": "Tech 2", "Break": "Tech 2"},
+    "08:00": {"Critical": "Tech 1", "Warning": "Tech 1", "CBSNet": "Tech 2", "Calendar": "Tech 2", "Break": "Tech 2"},
+    "09:00": {"Critical": "Tech 2", "Warning": "Tech 2", "CBSNet": "Tech 1", "Calendar": "Tech 1", "Break": "Tech 1"}
+  }
+}
