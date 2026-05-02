@@ -196,7 +196,7 @@
         tbody.innerHTML = ''; 
 
         for (let i = 0; i < 24; i++) {
-            let currentHour = (i + 6) % 24;
+            let currentHour = (i + 7) % 24;
             let nextHour = (currentHour + 1) % 24;
             let timeLabel = `${formatAMPM(currentHour)} - ${formatAMPM(nextHour)}`;
 
