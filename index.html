@@ -67,7 +67,7 @@
         return `${h} ${ampm}`;
     }
 
-    // Creates standard 24-hour options for the Start dropdown
+    // Standard 24-hour options for Start dropdown
     function createOptions() {
         let options = '';
         for (let i = 0; i < 24; i++) {
@@ -76,26 +76,54 @@
         return options;
     }
 
-    // Creates hours with a "--" (None) option for Break/Special Tasks
-    function createOptionalOptions() {
-        let options = `<option value="-1">--</option>`;
-        for (let i = 0; i < 24; i++) {
-            options += `<option value="${i}">${formatAMPM(i)}</option>`;
-        }
-        return options;
-    }
-
-    // NEW: Dynamically updates the End dropdown to only show max 12 hours from Start
+    // NEW: Updates End options to ONLY show 4 to 11 hours after Start
     function updateEndOptions(startSelect) {
         const startHour = parseInt(startSelect.value);
-        const endSelect = startSelect.parentElement.querySelector('.tech-end');
+        const row = startSelect.closest('.tech-row');
+        const endSelect = row.querySelector('.tech-end');
         
+        // Save current end value if it exists so it doesn't always reset when changing start
+        let currentEnd = endSelect.value;
         let options = '';
-        for (let i = 1; i <= 12; i++) {
+        
+        for (let i = 4; i <= 11; i++) {
             let h = (startHour + i) % 24;
             options += `<option value="${h}">${formatAMPM(h)}</option>`;
         }
         endSelect.innerHTML = options;
+        
+        // Push the update to the Break/Special dropdowns
+        updateBreakSpecialOptions(row);
+    }
+
+    // NEW: Updates Break/Special to ONLY show hours within the shift
+    function updateBreakSpecialOptions(row) {
+        const startHour = parseInt(row.querySelector('.tech-start').value);
+        const endHour = parseInt(row.querySelector('.tech-end').value);
+        const breakSelect = row.querySelector('.tech-break');
+        const specialSelect = row.querySelector('.tech-special');
+        
+        // Calculate shift duration in hours
+        let shiftLength = (endHour - startHour + 24) % 24;
+        if (shiftLength === 0) shiftLength = 24; // Failsafe
+
+        let options = `<option value="-1">--</option>`;
+        
+        // Generate options strictly within shift (exclusive of the final End hour)
+        for (let i = 0; i < shiftLength; i++) {
+            let h = (startHour + i) % 24;
+            options += `<option value="${h}">${formatAMPM(h)}</option>`;
+        }
+        
+        // Save current values if they are still valid, otherwise it resets to "--"
+        let curBreak = breakSelect.value;
+        let curSpecial = specialSelect.value;
+        
+        breakSelect.innerHTML = options;
+        specialSelect.innerHTML = options;
+        
+        if([...breakSelect.options].some(o => o.value === curBreak)) breakSelect.value = curBreak;
+        if([...specialSelect.options].some(o => o.value === curSpecial)) specialSelect.value = curSpecial;
     }
 
     function addTechRow() {
@@ -105,14 +133,14 @@
         div.innerHTML = `
             <input type="text" placeholder="Tech Name" class="tech-name">
             <label>Start:</label><select class="tech-start" onchange="updateEndOptions(this)">${createOptions()}</select>
-            <label>End:</label><select class="tech-end"></select>
-            <label>Break (1h):</label><select class="tech-break">${createOptionalOptions()}</select>
-            <label>Special (1h):</label><select class="tech-special">${createOptionalOptions()}</select>
+            <label>End:</label><select class="tech-end" onchange="updateBreakSpecialOptions(this.closest('.tech-row'))"></select>
+            <label>Break (1h):</label><select class="tech-break"></select>
+            <label>Special (1h):</label><select class="tech-special"></select>
             <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
         `;
         container.appendChild(div);
         
-        // Initialize the End options immediately after adding the row
+        // Initialize dynamic dropdowns for this new row
         updateEndOptions(div.querySelector('.tech-start'));
     }
 
@@ -120,10 +148,10 @@
     window.onload = () => { addTechRow(); addTechRow(); addTechRow(); addTechRow(); };
 
     function generateTable() {
-        // --- NEW: CONFLICT CHECKER ---
+        // --- CONFLICT CHECKER ---
         const rows = document.querySelectorAll('.tech-row');
         let staff = [];
-        let offTimes = {}; // Tracks who is off at what hour
+        let offTimes = {}; 
         let conflictFound = false;
         let conflictMsg = "";
 
@@ -133,7 +161,6 @@
                 let brk = parseInt(row.querySelector('.tech-break').value);
                 let spec = parseInt(row.querySelector('.tech-special').value);
                 
-                // Track breaks and specials for overlap checking
                 [brk, spec].forEach(hr => {
                     if (hr !== -1) {
                         if (!offTimes[hr]) offTimes[hr] = [];
@@ -151,7 +178,6 @@
             }
         });
 
-        // Loop through the tracked off-times to see if 2+ people are off at the same hour
         for (let hour in offTimes) {
             if (offTimes[hour].length > 1) {
                 conflictFound = true;
@@ -159,13 +185,12 @@
             }
         }
 
-        // Trigger alert and stop generation if conflict exists
         if (conflictFound) {
             alert("⚠️ HEADS UP! Double-Booking Detected:\nMultiple techs are scheduled for a Break or Special Task at the same time:" + conflictMsg + "\n\nPlease adjust the times to ensure coverage.");
             return; 
         }
-        // -----------------------------
 
+        // --- GENERATE TABLE ---
         document.getElementById('scheduleTable').style.display = 'table';
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = ''; 
